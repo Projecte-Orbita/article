@@ -1,0 +1,615 @@
+---
+title: "analisi-tot"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+require(psych)
+require(plyr)
+require(nFactors)
+require(ggplot2)
+require(GGally)
+require(reshape2)
+library(kableExtra)
+require(mice)
+library(lavaan)
+source("grafics.R", encoding = "UTF-8")
+source("helpers.R", encoding = "UTF-8")
+source('ggbiplot.R')
+```
+
+
+```{r}
+noms = c("Reading", "Errors Reading", "Working_memory","Errors Working memory", "Visual_processing_speed", "Errors Visual processing speed", "Mathematical_fluency", "Errors Mathematical fluency", "Long_term_memory", "Errors Long term memory","Reasoning", "Errors_Reasoning")
+
+pre1 = read.csv('prebarems1.csv', header = FALSE, encoding = "UTF-8")
+colnames(pre1)=noms
+pre2 = read.csv('prebarems2.csv', header = FALSE, encoding = "UTF-8")
+colnames(pre2)=noms
+
+pre3 = read.csv('prebarems3.csv', header = FALSE, encoding = "UTF-8")
+pre3$V3 =as.numeric(as.character(pre3$V3)) +as.numeric(as.character(pre3$V5))
+pre3$V4 = as.numeric(as.character(pre3$V4))+as.numeric(as.character(pre3$V6))
+pre3$V11 =as.numeric(as.character(pre3$V11)) +as.numeric(as.character(pre3$V13))
+pre3$V12 = as.numeric(as.character(pre3$V12))+as.numeric(as.character(pre3$V14))
+pre3 = pre3[,-c(5:6,13:14)]
+colnames(pre3)=noms
+
+pre4 = read.csv('prebarems4.csv', header = FALSE, encoding = "UTF-8")
+pre4$V3 =as.numeric(as.character(pre4$V3)) +as.numeric(as.character(pre4$V5))
+pre4$V4 = as.numeric(as.character(pre4$V4))+as.numeric(as.character(pre4$V6))
+pre4$V11 =as.numeric(as.character(pre4$V11)) +as.numeric(as.character(pre4$V13))
+pre4$V12 = as.numeric(as.character(pre4$V12))+as.numeric(as.character(pre4$V14))
+pre4 = pre4[,-c(5:6,13:14)]
+colnames(pre4)=noms
+
+pre5 = read.csv('prebarems5.csv', header = FALSE, encoding = "UTF-8")
+pre5$V3 =as.numeric(as.character(pre5$V3)) + 
+  as.numeric(as.character(pre5$V3)) + as.numeric(as.character(pre5$V7))
+pre5$V4 = as.numeric(as.character(pre5$V4))+
+  as.numeric(as.character(pre5$V6))+as.numeric(as.character(pre5$V8))
+
+pre5$V13 =as.numeric(as.character(pre5$V13)) +
+  as.numeric(as.character(pre5$V15)) + as.numeric(as.character(pre5$V17))
+pre5$V14 = as.numeric(as.character(pre5$V14)) + 
+  as.numeric(as.character(pre5$V16)) + as.numeric(as.character(pre5$V18))
+
+pre5 = pre5[,-c(5:8,15:18)]
+precalc5 = pre5[,c(13,14)] # per utilitzar després
+pre5 = pre5[,-c(13,14)] # també trec càlcul
+colnames(pre5)=noms
+
+
+pre6 = read.csv('prebarems6.csv', header = FALSE, encoding = "UTF-8")
+pre6$V3 =as.numeric(as.character(pre6$V3)) + 
+  as.numeric(as.character(pre6$V3)) + as.numeric(as.character(pre6$V7))
+pre6$V4 = as.numeric(as.character(pre6$V4))+
+  as.numeric(as.character(pre6$V6))+as.numeric(as.character(pre6$V8))
+pre6$V13 =as.numeric(as.character(pre6$V13)) +
+  as.numeric(as.character(pre6$V15)) + as.numeric(as.character(pre6$V17))
+pre6$V14 = as.numeric(as.character(pre6$V14)) + 
+  as.numeric(as.character(pre6$V16)) + as.numeric(as.character(pre6$V18))
+
+pre6 = pre6[,-c(5:8,15:18)]
+precalc6 = pre6[,c(13,14)] # per utilitzar després
+pre6 = pre6[,-c(13,14)] # també trec càlcul
+colnames(pre6)=noms
+
+```
+
+```{r}
+pre1$curs = rep(1, nrow(pre1))
+pre2$curs = rep(2, nrow(pre2))
+pre3$curs = rep(3, nrow(pre3))
+pre4$curs = rep(4, nrow(pre4))
+pre5$curs = rep(5, nrow(pre5))
+precalc5$curs = rep(5, nrow(precalc5))
+pre6$curs = rep(6, nrow(pre6))
+precalc6$curs = rep(6, nrow(precalc6))
+
+for (j in 1:12){
+  pre1[,j] = as.numeric(as.character(pre1[,j]))
+  pre2[,j] = as.numeric(as.character(pre2[,j]))
+  pre3[,j] = as.numeric(as.character(pre3[,j]))
+  pre4[,j] = as.numeric(as.character(pre4[,j]))
+  pre5[,j] = as.numeric(as.character(pre5[,j]))
+  pre6[,j] = as.numeric(as.character(pre6[,j]))
+}
+
+for (j in 1:2){
+  precalc5[,j] = as.numeric(as.character(precalc5[,j]))
+  precalc6[,j] = as.numeric(as.character(precalc6[,j]))
+}
+```
+
+```{r}
+coefs = c(0.25,0.5,0.2,0.2,0.5,0.33)
+
+for (j in 1:6){
+  pre1[,j*2-1] = pre1[,j*2-1]-coefs[j]*pre1[,j*2]
+  pre2[,j*2-1] = pre2[,j*2-1]-coefs[j]*pre2[,j*2]
+  pre3[,j*2-1] = pre3[,j*2-1]-coefs[j]*pre3[,j*2]
+  pre4[,j*2-1] = pre4[,j*2-1]-coefs[j]*pre4[,j*2]
+  pre5[,j*2-1] = pre5[,j*2-1]-coefs[j]*pre5[,j*2]
+  pre6[,j*2-1] = pre6[,j*2-1]-coefs[j]*pre6[,j*2]
+}
+
+pre1 = pre1[,-c(2,4,6,8,10,12)]
+pre2 = pre2[,-c(2,4,6,8,10,12)]
+pre3 = pre3[,-c(2,4,6,8,10,12)]
+pre4 = pre4[,-c(2,4,6,8,10,12)]
+pre5 = pre5[,-c(2,4,6,8,10,12)]
+pre6 = pre6[,-c(2,4,6,8,10,12)]
+
+precalc5[,1] = precalc5[,1]-0.25*precalc5[,2]
+precalc6[,1] = precalc6[,1]-0.25*precalc6[,2]
+
+precalc5[,2] = NULL
+precalc6[,2] = NULL
+```
+
+```{r, echo=FALSE}
+
+tt = rbind(pre1,pre2,pre3,pre4,pre5,pre6)
+#ttc = tt[complete.cases(tt),]
+tcalc = rbind(precalc5, precalc6)
+# Netegem un outlier de Working memory
+tt$`Working_memory`[tt$`Working_memory`>50]<-NA
+fora = c()
+for (i in 1:nrow(tt)){
+  if(sum(is.na(tt[i,]))>3){
+    fora = c(fora, i)
+  }
+}
+
+tt = tt[-fora,]
+
+fora = c()
+for (i in 1:nrow(tcalc)){
+  if(sum(is.na(tcalc[i,]))>3){
+    fora = c(fora, i)
+  }
+}
+
+#tcalc = tcalc[-fora,]
+```
+
+```{r}
+aa = mice(tt, method = 'cart')
+tc = complete(aa)
+bb = mice(tcalc, method = 'cart')
+tca = complete(bb)
+```
+
+
+Descriptive statistics
+===
+
+```{r}
+desc = describeBy(tc, group = tc$curs, quant=c(.25,.75))
+descalc = describeBy(tca, group = tca$curs, quant=c(.25,.75))
+```
+
+```{r}
+ds = c()
+for (i in 1:6) {
+  aa = desc[[i]]
+  temp = paste0(format(round(aa$median, 1), 2), " [", 
+              format(round(aa$Q0.25, 1), 2), "-", 
+              format(round(aa$Q0.75, 1), 2), "]")[1:6]
+  print(temp)
+  ds = rbind(ds, temp)
+}
+aa = descalc[[1]]
+temp1 = paste0(format(round(aa$median, 1), 2), " [", 
+              format(round(aa$Q0.25, 1), 2), "-", 
+              format(round(aa$Q0.75, 1), 2), "]")[1]
+aa = descalc[[2]]
+temp2 = paste0(format(round(aa$median, 1), 2), " [", 
+              format(round(aa$Q0.25, 1), 2), "-", 
+              format(round(aa$Q0.75, 1), 2), "]")[1]
+ds = t(ds)
+vec = c(rep("--", 4), temp1, temp2)
+ds = rbind(ds, vec)
+ds = as.data.frame(ds)
+names(ds) = c("First", "Second", "Third", "Fourth", "Fifth", "Sixth")
+ 
+ds$Task = paste0("\\textbf{", c("RD", "WM", "VPS", "MF", "LTM", "RS", "CA"), "}") 
+ds = ds[, c(7, 1:6)]
+title = "\\textbf{Test performance by academic course}"
+kdf = ds %>%
+    kable(format = "latex",
+          escape = F,
+          caption = title,
+          align = "c",
+          row.names = F
+          ) %>%
+    kable_styling(
+      bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+      full_width = F
+    )
+kdf
+```
+
+
+
+```{r}
+descalc = describeBy(tca, group = tca$curs)
+descalc
+```
+
+
+```{r}
+for (j in 1:6){
+  pre1[,j] = (pre1[,j]-mean(pre1[,j], na.rm=TRUE))/sd(pre1[,j], na.rm=TRUE)
+  pre2[,j] = (pre2[,j]-mean(pre2[,j], na.rm=TRUE))/sd(pre2[,j], na.rm=TRUE)
+  pre3[,j] = (pre3[,j]-mean(pre3[,j], na.rm=TRUE))/sd(pre3[,j], na.rm=TRUE)
+  pre4[,j] = (pre4[,j]-mean(pre4[,j], na.rm=TRUE))/sd(pre4[,j], na.rm=TRUE)
+  pre5[,j] = (pre5[,j]-mean(pre5[,j], na.rm=TRUE))/sd(pre5[,j], na.rm=TRUE)
+  pre6[,j] = (pre6[,j]-mean(pre6[,j], na.rm=TRUE))/sd(pre6[,j], na.rm=TRUE)
+}
+tots = rbind(pre1,pre2,pre3,pre4,pre5,pre6)
+
+tt = tots
+# Netegem un outlier de Working memory
+tt$`Working_memory`[tt$`Working_memory`>5]<-NA
+
+```
+
+```{r}
+aa = mice(tt, method = 'cart')
+tc = complete(aa)
+```
+
+```{r}
+precalc5[,1] = (precalc5[,1]-mean(precalc5[,1], na.rm=TRUE))/sd(precalc5[,1], na.rm=TRUE)
+precalc6[,1] = (precalc6[,1]-mean(precalc6[,1], na.rm=TRUE))/sd(precalc6[,1], na.rm=TRUE)
+totscalc = rbind(precalc5,precalc6)
+tcsup = cbind.data.frame(tc[tc$curs %in% c(5, 6), ], totscalc$V21)
+names(tcsup)[ncol(tcsup)] = "Calculus"
+bb = mice(tcsup, method = 'cart')
+tcca = complete(bb)
+
+```
+
+# Anàlisi factorial confirmatori
+
+```{r}
+library(lavaan)
+model1 = "
+memory =~ Working_memory + Long_term_memory
+speed =~ Mathematical_fluency + Visual_processing_speed
+comprehension =~ Reading + Reasoning
+"
+
+model2 = "
+memory =~ Working_memory + Long_term_memory
+visual =~ Visual_processing_speed + Reasoning
+reading =~ Reading
+maths =~ Mathematical_fluency
+"
+
+model2b = "
+memory =~ Working_memory + Long_term_memory
+visual =~ Visual_processing_speed
+reasoning =~ Reasoning
+reading =~ Reading
+maths =~ Mathematical_fluency
+"
+
+model3 = "
+memory =~ Working_memory + Long_term_memory
+visual =~ Visual_processing_speed
+reasoning =~ Reasoning
+reading =~ Reading 
+maths =~ Mathematical_fluency + Calculus
+"
+
+model4 = "
+memory =~ Working_memory + Long_term_memory
+visual =~ Visual_processing_speed
+reasoning =~ Reasoning
+reading =~ Reading 
+maths =~ Mathematical_fluency
+"
+```
+
+## Cicle Inicial
+
+```{r}
+inicial = tc[tc$curs %in% c(1, 2), ]
+```
+
+```{r}
+fit_in = cfa(model = model2b, data = inicial)
+summary(fit_in, fit.measures=T)
+```
+
+## Cicle Mitjà
+
+```{r}
+mitja = tc[tc$curs %in% c(3, 4), ]
+```
+
+```{r}
+fit_mi = cfa(model = model2b, data = mitja)
+summary(fit_mi, fit.measures=T)
+```
+
+## Cicle superior
+
+```{r}
+sup = tcca
+```
+
+```{r}
+fit_sup = cfa(model = model4, data = sup)
+summary(fit_sup, fit.measures=T)
+```
+
+# Matriu de Correlacions
+
+Cicle inicial
+
+```{r}
+names(inicial) = c("RD", "WM", "VPS", "MF", "LTM", "RS", "curs")
+cors = cor(inicial[, 1:6], method = "sp")
+upper_tri <- get_upper_tri(cors)
+mcor <- melt(upper_tri, na.rm = TRUE)
+pl1 = cormat_plot(mcor, titol = "First period\n")
+pl1
+ggsave("cormap_inicial.png", pl1, "png")
+```
+
+Cicle mitjà
+
+```{r}
+names(mitja) = c("RD", "WM", "VPS", "MF", "LTM", "RS", "curs")
+cors = cor(mitja[, 1:6], method = "sp")
+upper_tri <- get_upper_tri(cors)
+mcor <- melt(upper_tri, na.rm = TRUE)
+pl2 = cormat_plot(mcor, titol = "Second period\n")
+pl2
+ggsave("cormap_mitja.png", pl2, "png")
+```
+
+Cicle superior
+
+```{r}
+names(sup) = c("RD", "WM", "VPS", "MF", "LTM", "RS", "curs", "CA")
+cors = cor(sup[, c(1:6, 8)], method = "sp")
+upper_tri <- get_upper_tri(cors)
+mcor <- melt(upper_tri, na.rm = TRUE)
+pl3 = cormat_plot(mcor, titol = "Third period\n")
+pl3
+ggsave("cormap_sup.png", pl3, "png")
+```
+
+```{r}
+gridExtra::grid.arrange(pl1, pl2, pl3, ncol=3)
+```
+
+
+Matriu de covariances
+===
+
+```{r}
+covs = cov(tc[,c(1:6)])
+get_upper_tri <- function(cormat){
+    cormat[lower.tri(cormat)]<- NA
+    return(cormat)
+  }
+upper_tri <- get_upper_tri(covs)
+
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-2,2), space = "Lab", 
+    name="Covariance") +
+  theme_light()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed()
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = round(value,2)), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+
+Proves de normalitat
+===
+
+```{r}
+
+sw = shapiro.test(tc$Reading)
+
+g = ggplot(tc, aes(x=Reading)) +
+    geom_density(alpha=.2, colour = "blue", fill="blue") +
+  stat_function(fun = dnorm, n = 101, linetype = "dashed",
+                args = list(mean = 0, sd = 1)) +
+  theme_light()+ # minimal theme
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    labs(title = "Reading distribution") + 
+    annotate("text",x = 2.8, y = 0.35,
+             label = paste0("Shapiro-Wilk Test \n", "p = ", round(sw$p.value,2))) + 
+    ylab("Density") + 
+  xlab("Normalized reading results")
+#ggsave("reading.png",g,"png")
+
+```
+
+
+```{r}
+sw = shapiro.test(tc$`Workin_memory`)
+
+g = ggplot(tc, aes(x=`Working_memory`)) +
+    geom_density(alpha=.2, colour = "blue", fill="blue") +
+  stat_function(fun = dnorm, n = 101, linetype = "dashed",
+                args = list(mean = 0, sd = 1)) +
+  theme_light()+ # minimal theme
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    labs(title = "Working memory distribution") + 
+    annotate("text",x = -3, y = 0.35,
+             label = paste0("Shapiro-Wilk Test \n", "p < 0.01")) + 
+    ylab("Density") + 
+  xlab("Normalized working memory results") + 
+  xlim(c(-4,4))
+g
+#ggsave("wm.png",g,"png")
+
+
+```
+
+
+```{r}
+sw = shapiro.test(tc$`Visual_processing_speed`)
+sw
+g = ggplot(tc, aes(x=`Visual_processing_speed`)) +
+    geom_density(alpha=.2, colour = "blue", fill="blue") +
+  stat_function(fun = dnorm, n = 101, linetype = "dashed",
+                args = list(mean = 0, sd = 1)) +
+  theme_light()+ # minimal theme
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    labs(title = "Visual processing speed distribution") + 
+    annotate("text",x = -3, y = 0.35,
+             label = paste0("Shapiro-Wilk Test \n", "p < 0.01")) + 
+    ylab("Density") + 
+  xlab("Normalized visual processing speed results") + 
+  xlim(c(-4,4))
+g
+#ggsave("vps.png",g,"png")
+```
+
+
+```{r}
+
+sw = shapiro.test(tc$`Mathematical_fluency`)
+
+sw
+g = ggplot(tc, aes(x=`Mathematical_fluency`)) +
+    geom_density(alpha=.2, colour = "blue", fill="blue") +
+  stat_function(fun = dnorm, n = 101, linetype = "dashed",
+                args = list(mean = 0, sd = 1)) +
+  theme_light()+ # minimal theme
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    labs(title = "Mathematical fluency distribution") + 
+    annotate("text",x = -3, y = 0.35,
+             label = paste0("Shapiro-Wilk Test \n", "p < 0.01")) + 
+    ylab("Density") + 
+  xlab("Normalized mathematical results") + 
+  xlim(c(-4,4))
+g
+#ggsave("mf.png",g,"png")
+```
+
+```{r}
+sw = shapiro.test(tc$`Long_term_memory`)
+sw
+g = ggplot(tc, aes(x=`Long_term_memory`)) +
+    geom_density(alpha=.2, colour = "blue", fill="blue") +
+  stat_function(fun = dnorm, n = 101, linetype = "dashed",
+                args = list(mean = 0, sd = 1)) +
+  theme_light()+ # minimal theme
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    labs(title = "Long term memory distribution") + 
+    annotate("text",x = -3, y = 0.35,
+             label = paste0("Shapiro-Wilk Test \n", "p < 0.01")) + 
+    ylab("Density") + 
+  xlab("Normalized long term memory results") + 
+  xlim(c(-4,4))
+g
+#ggsave("ltm.png",g,"png")
+
+```
+
+
+```{r}
+sw = shapiro.test(tc$`Reasoning`)
+sw
+g = ggplot(tc, aes(x=`Reasoning`)) +
+    geom_density(alpha=.2, colour = "blue", fill="blue") +
+  stat_function(fun = dnorm, n = 101, linetype = "dashed",
+                args = list(mean = 0, sd = 1)) +
+  theme_light()+ # minimal theme
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    labs(title = "Reasoning distribution") + 
+    annotate("text",x = -3, y = 0.35,
+             label = paste0("Shapiro-Wilk Test \n", "p < 0.01")) + 
+    ylab("Density") + 
+  xlab("Normalized reasoning results") + 
+  xlim(c(-4,4))
+g
+#ggsave("reasoning.png",g,"png")
+
+```
+
+```{r}
+colnames(tcca)=c("Calculus", "curs")
+sw = shapiro.test(tcca$Calculus)
+sw
+g = ggplot(tcca, aes(x=Calculus)) +
+    geom_density(alpha=.2, colour = "blue", fill="blue") +
+  stat_function(fun = dnorm, n = 101, linetype = "dashed",
+                args = list(mean = 0, sd = 1)) +
+  theme_light()+ # minimal theme
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    labs(title = "Calculus distribution") + 
+    annotate("text",x = -3, y = 0.35,
+             label = paste0("Shapiro-Wilk Test \n", "p < 0.01")) + 
+    ylab("Density") + 
+  xlab("Normalized calculus results") + 
+  xlim(c(-4,4))
+g
+ggsave("calculus.png",g,"png")
+
+```
+
+Clustering
+===
+
+Fem un anàlisi simple de clustering amb tots els cursos a la vegada per veure quines esctructures es creen i quins grups interessants hi pot haver:
+
+
+```{r}
+prout = prcomp(tc[,1:6])
+km.out = kmeans(data.matrix(tc[,1:6]), centers=5, nstart = 100)
+
+```
+
+```{r Fig2, fig.width=10, fig.height=10}
+g <- ggbiplot(prout, obs.scale = 1, var.scale = 1, choices = c(1,2),
+              groups = as.factor(km.out$cluster),ellipse = TRUE, 
+              circle = TRUE, aplha = 1, varname.size = 4) +
+  scale_color_discrete(name = '') + 
+  theme(legend.direction = 'vertical', 
+               legend.position = 'right') + 
+  labs(title = 'Biplot showing first and second principal components', 
+       subtitle = "Colors indicate clusters in k-means") +
+  theme_light()
+
+print(g)
+#ggsave("biplot_12",g,"png")
+```
+
+```{r Fig3, fig.width=10, fig.height=10}
+g <- ggbiplot(prout, obs.scale = 1, var.scale = 1, choices = c(1,3),
+              groups = as.factor(km.out$cluster),ellipse = TRUE, 
+              circle = TRUE, aplha = 0.5, varname.size = 4) +
+  scale_color_discrete(name = '') + 
+  theme(legend.direction = 'vertical', 
+               legend.position = 'right') + 
+  labs(title = 'Biplot showing first and third principal components', 
+       subtitle = "Colors indicate clusters in k-means") + 
+  theme_light()
+
+print(g)
+#ggsave("biplot_13",g,"png")
+
+```
+
+```{r}
+temp = read.csv("Emocional - CM-CS.csv")
+temp$Curs = NULL
+
+safe_numeric = function(x) {
+  as.numeric(as.character(x))
+}
+temp = apply(temp, 2, safe_numeric)
+aa = mice(temp)
+ab = complete(aa)
+psych::alpha(ab, check.keys=TRUE)
+```

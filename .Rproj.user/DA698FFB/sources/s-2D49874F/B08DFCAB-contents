@@ -1,0 +1,100 @@
+---
+title: "resultats_raonament"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(ggplot2)
+```
+
+```{r}
+ra1 = read.csv('prebarems1.csv', header = FALSE)
+ra2 = read.csv('prebarems2.csv', header = FALSE)
+ra3 = read.csv('prebarems3.csv', header = FALSE)
+ra4 = read.csv('prebarems4.csv', header = FALSE)
+ra5 = read.csv('prebarems5.csv', header = FALSE)
+ra6 = read.csv('prebarems6.csv', header = FALSE)
+```
+
+Primer
+===
+
+```{r}
+ggplot(ra1, aes(x=as.numeric(as.character(V11)))) + 
+    geom_histogram(aes(y=..density..),     
+                   binwidth=1,
+                   colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") +
+  labs(title = "Distribució raonament 1r") + 
+  xlab(label = "Raonament")
+```
+
+Segon
+===
+
+```{r}
+ggplot(ra2, aes(x=as.numeric(as.character(V11)))) + 
+    geom_histogram(aes(y=..density..),     
+                   binwidth=1,
+                   colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") +
+  labs(title = "Distribució raonament 2n") + 
+  xlab(label = "Raonament")
+```
+
+
+Tercer
+===
+
+```{r}
+ggplot(ra3, aes(x=as.numeric(as.character(V15)))) + 
+    geom_histogram(aes(y=..density..),     
+                   binwidth=1,
+                   colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") +
+  labs(title = "Distribució raonament 3r") + 
+  xlab(label = "Raonament")
+```
+
+
+Quatre
+===
+
+```{r}
+ggplot(ra4, aes(x=as.numeric(as.character(V15)))) + 
+    geom_histogram(aes(y=..density..),     
+                   binwidth=1,
+                   colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") +
+  labs(title = "Distribució raonament 4rt") + 
+  xlab(label = "Raonament") +
+  theme_bw()
+```
+
+
+Cinquè
+===
+
+```{r}
+ggplot(ra5, aes(x=as.numeric(as.character(V19)))) + 
+    geom_histogram(aes(y=..density..),     
+                   binwidth=1,
+                   colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") +
+  labs(title = "Distribució raonament 5è") + 
+  xlab(label = "Raonament")
+```
+
+Sisè
+===
+
+```{r}
+ggplot(ra6, aes(x=as.numeric(as.character(V19)))) + 
+    geom_histogram(aes(y=..density..),     
+                   binwidth=1,
+                   colour="black", fill="white") +
+    geom_density(alpha=.2, fill="#FF6666") +
+  labs(title = "Distribució raonament 6è") + 
+  xlab(label = "Raonament")
+```

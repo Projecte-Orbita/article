@@ -1,0 +1,215 @@
+---
+title: "Anàlisi per nens"
+author: "Unitat de Bioestadística"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+require(dplyr)
+require(reshape2)
+require(ggplot2)
+```
+
+```{r}
+df = read.csv("dades_tots_escalades.csv")
+```
+
+En aquest estudi volem treure estadístiques sobre els nens: per exemple, quants tenen n àrees afectades, o quants tenen m àrees amb alt rendiment, etc.
+
+```{r}
+# Definim els percentatges de rendiment alt i baix, que es poden canviar
+baix = .3
+alt = .85
+```
+
+```{r}
+ranks = apply(df[,1:6], 2, percent_rank)
+ranks_sino = ranks<baix
+```
+
+### Baix rendiment
+
+Quants infants estan en baix rendiment en com a mínim 1 matèria:
+
+```{r}
+baix1 = apply(ranks_sino, 1, sum)
+b1 = length(baix1[baix1>0])
+b1
+```
+
+És a dir, un `r round(b1/length(baix1)*100,1)`%.
+
+Quants infants estan en baix rendiment en com a mínim 2 matèries:
+
+```{r}
+baix2 = apply(ranks_sino, 1, sum)
+b2 = length(baix2[baix2>1])
+b2
+```
+
+És a dir, un `r round(b2/length(baix2)*100,1)`%.
+
+Quants infants estan en baix rendiment en com a mínim 3 matèries:
+
+```{r}
+baix3 = apply(ranks_sino, 1, sum)
+b3 = length(baix3[baix3>2])
+b3
+```
+
+És a dir, un `r round(b3/length(baix3)*100,1)`%.
+
+Quants infants estan en baix rendiment en com a mínim 4 matèries:
+
+```{r}
+baix4 = apply(ranks_sino, 1, sum)
+b4 = length(baix4[baix4>3])
+b4
+```
+
+És a dir, un `r round(b4/length(baix4)*100,1)`%.
+
+Quants infants estan en baix rendiment en com a mínim 5 matèries:
+
+```{r}
+baix5 = apply(ranks_sino, 1, sum)
+b5 = length(baix5[baix5>4])
+b5
+```
+
+És a dir, un `r round(b5/length(baix5)*100,1)`%.
+
+Quants infants estan baixos en *totes* les matèries:
+
+```{r}
+baix6 = apply(ranks_sino, 1, sum)
+b6 = length(baix6[baix5>5])
+b6
+```
+
+És a dir, un `r round(b6/length(baix6)*100,1)`%.
+
+### Alt rendiment
+
+```{r}
+ranks_sino_alt = ranks>alt
+```
+
+
+Quants infants estan en alt rendiment en com a mínim 1 matèria:
+
+```{r}
+alt1 = apply(ranks_sino_alt, 1, sum)
+a1 = length(alt1[alt1>0])
+a1
+```
+
+És a dir, un `r round(a1/length(alt1)*100,1)`%.
+
+Quants infants estan en alt rendiment en com a mínim 2 matèries:
+
+```{r}
+alt2 = apply(ranks_sino_alt, 1, sum)
+a2 = length(alt2[alt2>1])
+a2
+```
+
+És a dir, un `r round(a2/length(alt2)*100,1)`%.
+
+Quants infants estan en alt rendiment en com a mínim 3 matèries:
+
+```{r}
+alt3 = apply(ranks_sino_alt, 1, sum)
+a3 = length(alt3[alt3>2])
+a3
+```
+
+És a dir, un `r round(a3/length(alt3)*100,1)`%.
+
+Quants infants estan en alt rendiment en com a mínim 4 matèries:
+
+```{r}
+alt4 = apply(ranks_sino_alt, 1, sum)
+a4 = length(alt4[alt4>3])
+a4
+```
+
+És a dir, un `r round(a4/length(alt4)*100,1)`%.
+
+Quants infants estan en alt rendiment en com a mínim 5 matèries:
+
+```{r}
+alt5 = apply(ranks_sino_alt, 1, sum)
+a5 = length(alt5[alt5>4])
+a5
+```
+
+És a dir, un `r round(a5/length(alt5)*100,1)`%.
+
+Quants infants estan alts en *totes* les matèries:
+
+```{r}
+alt6 = apply(ranks_sino_alt, 1, sum)
+a6 = length(alt6[alt6>5])
+a6
+```
+
+És a dir, un `r round(a6/length(alt6)*100,1)`%.
+
+## Relacions alt-baix
+
+```{r}
+# canviem la manera de funcionar
+quants_baixos = apply(ranks_sino, 1, sum)
+quants_alts = apply(ranks_sino_alt, 1, sum)
+
+quants = cbind.data.frame(quants_baixos, quants_alts)
+
+matriu = matrix(0, 7,7)
+
+for (i in 1:nrow(quants)){
+  matriu[quants[i,1]+1, quants[i,2]+1] = matriu[quants[i,1]+1, quants[i,2]+1]+1
+}
+rownames(matriu) = c("0 baix", "1 baix", "2 baix", "3 baix", "4 baix", "5 baix", "6 baix" )
+colnames(matriu) = c("0 alt","1 alt","2 alt","3 alt","4 alt","5 alt","6 alt")
+```
+
+La matriu dels resultats és:
+
+```{r}
+matriu
+```
+
+Gràficament
+
+```{r}
+matriu[matriu==0]=NA
+melted_cormat <- melt(matriu, na.rm = TRUE)
+
+ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+ geom_tile(color = "white")+
+ scale_fill_gradient2(low = "white", high = "red",  limit = c(0,220), space = "Lab", 
+    name="Relacions") +
+  theme_light()+ # minimal theme
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed()
+
+ggheatmap + 
+geom_text(aes(Var2, Var1, label = round(value,2)), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.9, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+```
+
+
